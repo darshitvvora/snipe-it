@@ -7,6 +7,7 @@ use View;
 use Auth;
 use Redirect;
 use App\Models\Asset;
+use App\Models\LicenseSeat;
 use App\Models\Company;
 
 /**
@@ -29,14 +30,25 @@ class DashboardController extends Controller
     {
         // Show the page
         if (Auth::user()->hasAccess('admin')) {
+           $company_id = Auth::user()->company_id;
 
             $asset_stats=null;
 
-            $counts['asset'] = \App\Models\Asset::count();
-            $counts['accessory'] = \App\Models\Accessory::count();
-            $counts['license'] = \App\Models\License::assetcount();
-            $counts['consumable'] = \App\Models\Consumable::count();
-            $counts['grand_total'] =  $counts['asset'] +  $counts['accessory'] +  $counts['license'] +  $counts['consumable'];
+
+            if(isset($company_id) and !empty($company_id)) {
+
+                $counts['asset'] = \App\Models\Asset::where(['company_id' => $company_id])->count();
+                $counts['accessory'] = \App\Models\Accessory::where(['company_id' => $company_id])->count();
+                $counts['license'] = \App\Models\LicenseSeat::where(['company_id' => $company_id])->whereNull('deleted_at')->count();
+                $counts['consumable'] = \App\Models\Consumable::where(['company_id' => $company_id])->count();
+                $counts['grand_total'] = $counts['asset'] + $counts['accessory'] + $counts['license'] + $counts['consumable'];
+            } else {
+                $counts['asset'] = \App\Models\Asset::count();
+                $counts['accessory'] = \App\Models\Accessory::count();
+                $counts['license'] = \App\Models\License::assetcount();
+                $counts['consumable'] = \App\Models\Consumable::count();
+                $counts['grand_total'] = $counts['asset'] + $counts['accessory'] + $counts['license'] + $counts['consumable'];
+            }
 
             if ((!file_exists(storage_path().'/oauth-private.key')) || (!file_exists(storage_path().'/oauth-public.key'))) {
                 \Artisan::call('migrate', ['--force' => true]);
